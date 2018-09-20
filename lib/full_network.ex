@@ -7,8 +7,7 @@ defmodule FullNetwork do
       start: {Actor, :start_link, [{master, 0, []}]}
     }
 
-    {:ok, child} = Super.start_child(child_spec)
-    [child]
+    [child_spec]
   end
 
   defp start_gossip_proc(n) do
@@ -19,9 +18,7 @@ defmodule FullNetwork do
       start: {Actor, :start_link, [{master, 0, []}]}
     }
 
-    #  IO.inspect(child_spec)
-    {:ok, child} = Super.start_child(child_spec)
-    [child | start_gossip_proc(n - 1)]
+    [child_spec | start_gossip_proc(n - 1)]
   end
 
   defp send_pids_to_processes(pids, n) when n == 1 do
@@ -37,9 +34,9 @@ defmodule FullNetwork do
   end
 
   defp start_gossip(n) do
-    Super.start_link(0)
-    pids = start_gossip_proc(n)
-    # IO.inspect(pids)
+    children = start_gossip_proc(n)
+    Super.start_link(children)
+    pids = Super.get_child_pids()
     send_pids_to_processes(pids, n)
     seed = Super.get_random_child()
     IO.puts("starting")
@@ -53,11 +50,10 @@ defmodule FullNetwork do
 
     child_spec = %{
       id: n,
-      start: {PushSumActor, :start_link, [{master, n, 1, 0, n, []}]}
+      start: {PushSumActor, :start_link, [{n, master, n, 1, 0, n, []}]}
     }
 
-    {:ok, child} = Super.start_child(child_spec)
-    [child]
+    [child_spec]
   end
 
   defp start_push_sum_proc(n) do
@@ -65,12 +61,10 @@ defmodule FullNetwork do
 
     child_spec = %{
       id: n,
-      start: {PushSumActor, :start_link, [{master, n, 1, 0, n, []}]}
+      start: {PushSumActor, :start_link, [{n, master, n, 1, 0, n, []}]}
     }
 
-    #  IO.inspect(child_spec)
-    {:ok, child} = Super.start_child(child_spec)
-    [child | start_push_sum_proc(n - 1)]
+    [child_spec | start_push_sum_proc(n - 1)]
   end
 
   defp send_pids_to_ps_processes(pids, n) when n == 1 do
@@ -86,8 +80,9 @@ defmodule FullNetwork do
   end
 
   defp start_push_sum(n) do
-    Super.start_link(0)
-    pids = start_push_sum_proc(n)
+    children = start_push_sum_proc(n)
+    Super.start_link(children)
+    pids = Super.get_child_pids()
     # IO.inspect(pids)
     send_pids_to_ps_processes(pids, n)
     seed = Super.get_random_child()

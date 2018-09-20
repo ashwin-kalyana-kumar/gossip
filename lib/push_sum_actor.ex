@@ -4,7 +4,7 @@ defmodule PushSumActor do
   @doc """
   default startlink for the GenServer
   the status is of the following format
-  {master_node, s, w, stop_val, old_ratio,[neighbor_nodes]}
+  {id, master_node, s, w, stop_val, old_ratio,[neighbor_nodes]}
   master_node -> the pid of the master node that started this gen_server process
   s, w -> s, w from the problem statement
   stop_val -> the value of the number of previous rounds which did not change
@@ -39,9 +39,9 @@ defmodule PushSumActor do
   end
 
   def handle_call({:neighbors, pids}, _from, status) do
-    {master, s, w, stop_val, old_ratio, _} = status
+    {id, master, s, w, stop_val, old_ratio, _} = status
     #  IO.inspect(master)
-    {:reply, :ok, {master, s, w, stop_val, old_ratio, pids}}
+    {:reply, :ok, {id, master, s, w, stop_val, old_ratio, pids}}
   end
 
   @doc """
@@ -49,7 +49,7 @@ defmodule PushSumActor do
   message is being sent to this process.
   """
   def handle_cast({:gossip, message}, state) do
-    {master, s, w, stop_val, old_ratio, neighbors} = state
+    {id, master, s, w, stop_val, old_ratio, neighbors} = state
     {incoming_s, incoming_w} = message
     s = s + incoming_s
     w = w + incoming_w
@@ -72,18 +72,27 @@ defmodule PushSumActor do
         0
       end
 
+    IO.puts(new_diff)
+    [{_, restart_threshold}] = Registry.lookup(:gossip_algo, :restart_threshold)
+    [{_, restart_percent}] = Registry.lookup(:gossip_algo, :restart_percent)
+    random_number = :rand.uniform(100)
+
+    if(new_diff < restart_threshold and random_number < restart_percent) do
+      send(master, {:restart_me, id})
+    end
+
     if stop_val == 3 do
       send(master, :gossip_done)
     else
       send_gossip(neighbors, {s, w})
     end
 
-    state = {master, s, w, stop_val, new_ratio, neighbors}
+    state = {id, master, s, w, stop_val, new_ratio, neighbors}
     {:noreply, state}
   end
 
   def handle_cast({:start_gossip}, state) do
-    {master, s, w, stop_val, old_ratio, neighbors} = state
+    {id, master, s, w, stop_val, old_ratio, neighbors} = state
     s = s / 2
     w = w / 2
     new_ratio = s / w
@@ -109,7 +118,7 @@ defmodule PushSumActor do
       send_gossip(neighbors, {s, w})
     end
 
-    state = {master, s, w, stop_val, new_ratio, neighbors}
+    state = {id, master, s, w, stop_val, new_ratio, neighbors}
     {:noreply, state}
   end
 end
