@@ -37,7 +37,7 @@ defmodule Gossip do
     Registry.register(:gossip_algo, :min_val, 0.0000000001)
     Registry.register(:gossip_algo, :restart_threshold, 0.00000001)
     Registry.register(:gossip_algo, :restart_percent, 50)
-    ImperfectLine.start(n, :gossip)
+    Torus.start(n, :gossip)
     listen_to_messages()
   end
 end
