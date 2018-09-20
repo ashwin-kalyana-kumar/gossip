@@ -21,15 +21,11 @@ defmodule Actor do
   end
 
   @doc """
-  the method to send the gossip to all the nieghbors of the current actor
+  the method to send the gossip to a random nieghbor of the current actor
   """
-  def send_gossip(neighbors, _) when neighbors == [] do
-    nil
-  end
-
   def send_gossip(neighbors, message) do
-    GenServer.cast(hd(neighbors), {:gossip, message})
-    send_gossip(tl(neighbors, message))
+    random_neighbor = neighbors |> Enum.random()
+    GenServer.cast(random_neighbor, {:gossip, message})
   end
 
   @doc """
@@ -42,7 +38,7 @@ defmodule Actor do
     if message_count === 10 do
       send(master, :gossip_done)
     else
-      send_gossip(neighbors)
+      send_gossip(neighbors, message)
     end
 
     {:noreply, state}
