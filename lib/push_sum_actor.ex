@@ -12,7 +12,7 @@ defmodule PushSumActor do
   [neighbor_nodes] -> the list of actors that are the neighbors of this actor
   """
   def start_link(status) do
-    GenServer.start_link(status)
+    GenServer.start_link(__MODULE__, status)
   end
 
   @doc """
@@ -30,6 +30,20 @@ defmodule PushSumActor do
     GenServer.cast(random_neighbor, {:gossip, message})
   end
 
+  def start_gossip(pid) do
+    GenServer.cast(pid, {:start_gossip})
+  end
+
+  def update_neighbors(pid, pids) do
+    GenServer.call(pid, {:neighbors, pids})
+  end
+
+  def handle_call({:neighbors, pids}, _from, status) do
+    {master, s, w, stop_val, old_ratio, _} = status
+    #  IO.inspect(master)
+    {:reply, :ok, {master, s, w, stop_val, old_ratio, pids}}
+  end
+
   @doc """
   the default handle_case for the GenServer. This is called whenever a new
   message is being sent to this process.
@@ -42,22 +56,60 @@ defmodule PushSumActor do
     s = s / 2
     w = w / 2
     new_ratio = s / w
-    new_diff = old_ratio - new_ratio
-    min_val = Registry.lookup(:gossip_algo, :min_val)
 
-    if(new_diff < min_val) do
-      stop_val = stop_val + 1
-    else
-      stop_val = 0
-    end
+    new_diff =
+      cond do
+        old_ratio > new_ratio -> old_ratio - new_ratio
+        new_ratio >= old_ratio -> new_ratio - old_ratio
+      end
+
+    [{_, min_val}] = Registry.lookup(:gossip_algo, :min_val)
+
+    stop_val =
+      if(new_diff < min_val) do
+        stop_val + 1
+      else
+        0
+      end
 
     if stop_val == 3 do
       send(master, :gossip_done)
     else
       send_gossip(neighbors, {s, w})
-      state = {master, s, w, stop_val, new_ratio, neighbors}
     end
 
+    state = {master, s, w, stop_val, new_ratio, neighbors}
+    {:noreply, state}
+  end
+
+  def handle_cast({:start_gossip}, state) do
+    {master, s, w, stop_val, old_ratio, neighbors} = state
+    s = s / 2
+    w = w / 2
+    new_ratio = s / w
+
+    new_diff =
+      cond do
+        old_ratio > new_ratio -> old_ratio - new_ratio
+        new_ratio >= old_ratio -> new_ratio - old_ratio
+      end
+
+    min_val = Registry.lookup(:gossip_algo, :min_val)
+
+    stop_val =
+      if(new_diff < min_val) do
+        stop_val + 1
+      else
+        0
+      end
+
+    if stop_val == 3 do
+      send(master, :gossip_done)
+    else
+      send_gossip(neighbors, {s, w})
+    end
+
+    state = {master, s, w, stop_val, new_ratio, neighbors}
     {:noreply, state}
   end
 end

@@ -10,22 +10,37 @@ defmodule Actor do
   [neighbor_nodes] -> the list of actors that are the neighbors of this actor
   """
   def start_link(status) do
-    GenServer.start_link(status)
+    GenServer.start_link(__MODULE__, status)
   end
 
   @doc """
   the default init method for the GenServer
   """
   def init(status) do
+    #    IO.inspect(status)
     {:ok, status}
+  end
+
+  def start_gossip(pid) do
+    GenServer.cast(pid, {:gossip, :hello})
   end
 
   @doc """
   the method to send the gossip to a random nieghbor of the current actor
   """
-  def send_gossip(neighbors, message) do
+  defp send_gossip(neighbors, message) do
     random_neighbor = neighbors |> Enum.random()
     GenServer.cast(random_neighbor, {:gossip, message})
+  end
+
+  def update_neighbors(pid, pids) do
+    GenServer.call(pid, {:neighbors, pids})
+  end
+
+  def handle_call({:neighbors, pids}, _from, status) do
+    {master, message_count, _} = status
+    #  IO.inspect(master)
+    {:reply, :ok, {master, message_count, pids}}
   end
 
   @doc """
@@ -34,6 +49,10 @@ defmodule Actor do
   """
   def handle_cast({:gossip, message}, status) do
     {master, message_count, neighbors} = status
+    message_count = message_count + 1
+    #    IO.inspect(self())
+    #    IO.puts(message_count)
+    #    IO.inspect(master)
 
     if message_count === 10 do
       send(master, :gossip_done)
@@ -41,6 +60,6 @@ defmodule Actor do
       send_gossip(neighbors, message)
     end
 
-    {:noreply, state}
+    {:noreply, {master, message_count, neighbors}}
   end
 end

@@ -15,12 +15,19 @@ defmodule Super do
 
   def terminate_random() do
     child_list = DynamicSupervisor.which_children(:supervisor)
-    {id, pid, type, modules} = child_list |> Enum.random()
+    {id, _, _, _} = child_list |> Enum.random()
     DynamicSupervisor.terminate_child(:supervisor, id)
     id
   end
 
   def restart_child(id) do
-    DynamicSupervisor.restart_child(:supervisor, id)
+    #  DynamicSupervisor.restart_child(:supervisor, id)
+    nil
+  end
+
+  def get_random_child() do
+    child_list = DynamicSupervisor.which_children(:supervisor)
+    {_, pid, _, _} = child_list |> Enum.random()
+    pid
   end
 end
