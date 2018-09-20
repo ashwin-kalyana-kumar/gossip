@@ -45,6 +45,23 @@ defmodule Super do
     extract_pid(child_list)
   end
 
+  def extract_info(child_list, map) when child_list == [] do
+    map
+  end
+
+  def extract_info(child_list, map) do
+    {id, pid, _, _} = hd(child_list)
+    map = Map.put(map, id, pid)
+    # map = Map.put(map, id, id)
+    extract_info(tl(child_list), map)
+  end
+
+  def get_child_info() do
+    map = %{}
+    child_list = Supervisor.which_children(:supervisor)
+    extract_info(child_list, map)
+  end
+
   def terminate_child(child_list) when child_list == [] do
     nil
   end
