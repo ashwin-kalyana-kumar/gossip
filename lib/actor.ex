@@ -51,7 +51,7 @@ defmodule Actor do
     {master, message_count, neighbors} = status
     message_count = message_count + 1
     #    IO.inspect(self())
-    #    IO.puts(message_count)
+    IO.puts(message_count)
     #    IO.inspect(master)
 
     if message_count === 10 do

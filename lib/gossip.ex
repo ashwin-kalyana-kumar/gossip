@@ -23,10 +23,11 @@ defmodule Gossip do
         Super.terminate_all()
 
       {:restart_me, id} ->
+        IO.puts("restarting child #{id}")
         Super.restart_child(id)
         listen_to_messages()
     after
-      20_000 -> IO.puts("wtf bruh!")
+      60_000 -> IO.puts("wtf bruh!")
     end
   end
 
@@ -36,7 +37,7 @@ defmodule Gossip do
     Registry.register(:gossip_algo, :min_val, 0.0000000001)
     Registry.register(:gossip_algo, :restart_threshold, 0.00000001)
     Registry.register(:gossip_algo, :restart_percent, 50)
-    FullNetwork.start(n, :push_sum)
+    Random2D.start(n, :push_sum)
     listen_to_messages()
   end
 end

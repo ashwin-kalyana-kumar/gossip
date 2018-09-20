@@ -72,7 +72,7 @@ defmodule PushSumActor do
         0
       end
 
-    IO.puts(new_diff)
+    #  IO.puts(new_diff)
     [{_, restart_threshold}] = Registry.lookup(:gossip_algo, :restart_threshold)
     [{_, restart_percent}] = Registry.lookup(:gossip_algo, :restart_percent)
     random_number = :rand.uniform(100)
